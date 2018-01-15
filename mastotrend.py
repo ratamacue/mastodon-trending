@@ -5,19 +5,29 @@
 
 import json
 from urllib.request import urlopen
-import nltk   
+import nltk  
+from nltk.tokenize import TweetTokenizer 
 from bs4 import BeautifulSoup
 import string
+from nltk.corpus import stopwords
 from functools import reduce
 # pipreqs --force .
 # sudo python3 -m pip install -r requirements.txt
 
-timelineUrl = "https://mastodon.sdf.org/api/v1/timelines/public";
+nltk.download('stopwords')
+nltk.download('punkt')
+
+timelineUrl = "https://mastodon.sdf.org/api/v1/timelines/public?limit=40";
 
 data = json.load(urlopen(timelineUrl))
 
 def words(text):
-    words = text.split()
+    tokenized = TweetTokenizer().tokenize(text)
+    #print(tokenized)
+    all_words = set(TweetTokenizer().tokenize(text)) #the set prevents a single status from boosting a word multiple times.
+    words_without_stopwords = filter(lambda w: len(w) > 4 and not w in set(stopwords.words('english')), all_words)
+    words = words_without_stopwords
+    
     return list(words)
 
 def html_to_string (html):
