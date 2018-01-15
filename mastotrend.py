@@ -17,9 +17,27 @@ from functools import reduce
 nltk.download('stopwords')
 nltk.download('punkt')
 
-timelineUrl = "https://mastodon.sdf.org/api/v1/timelines/public?limit=40";
+#timelineUrl = "https://mastodon.sdf.org/api/v1/timelines/public";
 
-data = json.load(urlopen(timelineUrl))
+#data = json.load(urlopen(timelineUrl))
+
+
+
+def getLotsOfToots():
+    #Get a few pages of toots
+    timelineUrl = "https://mastodon.sdf.org/api/v1/timelines/public?limit=40&"
+    data = []
+    paginator = ""
+    for i in range(10):
+        pagedUrl = timelineUrl+"&max_id="+paginator
+        newData = (json.load(urlopen(pagedUrl)))
+        paginator = newData[len(newData)-1]["id"]
+        data = data + newData
+    #print(data)
+    return data
+    
+data = getLotsOfToots()    
+
 
 def words(text):
     tokenized = TweetTokenizer().tokenize(text)
