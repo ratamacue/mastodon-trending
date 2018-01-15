@@ -13,6 +13,7 @@ import string
 import contractions
 from nltk.corpus import stopwords
 from functools import reduce
+import pprint
 # pipreqs --force .
 # sudo python3 -m pip install -r requirements.txt
 
@@ -25,7 +26,7 @@ nltk.download('wordnet')
 #data = json.load(urlopen(timelineUrl))
 
 top_1000_words = set(line.strip() for line in open('topwords.txt'))
-top_1000_words.update(["cannot"])
+top_1000_words.update(["cannot", "e-mail"])
 
 
 
@@ -68,5 +69,5 @@ def html_to_string (html):
 
 big_list_of_words = reduce((lambda x,y: x+y), map(lambda status: html_to_string(status["content"]), data))
 frequency_dist = nltk.probability.FreqDist(big_list_of_words)
-print(frequency_dist.most_common(20))
+pprint.pprint(frequency_dist.most_common(20))
 
