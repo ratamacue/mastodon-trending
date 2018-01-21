@@ -19,7 +19,8 @@ from functools import reduce
 import pprint
 # pipreqs --force .
 # sudo python3 -m pip install -r requirements.txt
-
+nltk.download('wordnet')
+nltk.download('stopwords')
 
 class MastoTrendData:
     lastTootSeen=None
