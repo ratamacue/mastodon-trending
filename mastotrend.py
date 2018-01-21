@@ -20,16 +20,6 @@ import pprint
 # sudo python3 -m pip install -r requirements.txt
 
 
-
-#nltk.download('stopwords')
-#nltk.download('punkt')
-#nltk.download('wordnet')
-
-#top_1000_words = set(line.strip() for line in open('topwords.txt'))
-#top_1000_words.update(["cannot", "e-mail"])
-
-
-
 class MastoTrendData:
     lastTootSeen=None
     totalTootsExamined = 0
@@ -50,17 +40,18 @@ def saveTrendData(mastoTrendData):
 
 
 
-def getLotsOfToots():
+def getLotsOfToots(start):
     #Get a few pages of toots
+
     timelineUrl = "https://mastodon.sdf.org/api/v1/timelines/public?limit=40&"
     data = []
-    paginator = ""
+    paginator = start
     for i in range(10):
-        pagedUrl = timelineUrl+"&max_id="+paginator
+        pagedUrl = timelineUrl if paginator is None else timelineUrl+"&since_id="+str(paginator)
         newData = (json.load(urlopen(pagedUrl)))
+        if(len(newData) == 0 ): break
         paginator = newData[len(newData)-1]["id"]
         data = data + newData
-    #print(data)
     return data
 
 def words(text):
@@ -82,25 +73,38 @@ def html_to_string (html):
 def tendProbability(hisoric_frequency_dist, history_toot_count, new_frequency_dist, new_toot_count):
     ret = {}
     for word in new_frequency_dist:
-        historic_average = hisoric_frequency_dist[word]/history_toot_count if hisoric_frequency_dist[word] is not None else 0
+        try:
+            historic_average = hisoric_frequency_dist[word]/history_toot_count
+        except Exception:
+            historic_average=0
+        print("Historic word average "+word+" "+str(historic_average))
         new_average = new_frequency_dist[word]/new_toot_count
         ret[word] = new_average - historic_average
     return ret
 
-mastoTrendHistory = loadTrendData()
-data = getLotsOfToots()
+def write_trending_json(sorted_probability_of_trending):
+    trending_json = json.dumps(list(map(lambda item: item[0], sorted_probability_of_trending)))
+    text_file = open("trending.json", "w")
+    text_file.write(trending_json)
+    text_file.close()
 
-big_list_of_words = reduce((lambda x,y: x+y), map(lambda status: html_to_string(status["content"]), data))
+mastoTrendHistory = loadTrendData()
+data = getLotsOfToots(mastoTrendHistory.lastTootSeen)
+
+(max_toot_id,big_list_of_words) = reduce((lambda x,y: (max(x[0],y[0]), x[1]+y[1])), map(lambda status: (int(status["id"]), html_to_string(status["content"])), data))
 new_frequency_dist = nltk.probability.FreqDist(big_list_of_words)
 
 probability_of_trending = tendProbability(mastoTrendHistory.frequency_dist, mastoTrendHistory.totalTootsExamined, new_frequency_dist, len(data))
 
-sorted_probability_of_trending = sorted(probability_of_trending.items(), key=operator.itemgetter(1))[:10]
+sorted_probability_of_trending = sorted(probability_of_trending.items(), reverse=True, key=operator.itemgetter(1))[:10]
 
+print("Last Toot: "+str(max_toot_id))
 pprint.pprint(sorted_probability_of_trending)
+write_trending_json(sorted_probability_of_trending)
+
 
 #Save
 mastoTrendHistory.frequency_dist = mastoTrendHistory.frequency_dist + new_frequency_dist
 mastoTrendHistory.totalTootsExamined = mastoTrendHistory.totalTootsExamined + len(data)
-mastoTrendHistory.lastTootSeen = None
+mastoTrendHistory.lastTootSeen = max_toot_id
 saveTrendData(mastoTrendHistory)
