@@ -4,6 +4,7 @@
 """Let's Mastodon"""
 
 import json
+import codecs
 import pickle
 import operator
 from urllib.request import urlopen
@@ -42,13 +43,14 @@ def saveTrendData(mastoTrendData):
 
 def getLotsOfToots(start):
     #Get a few pages of toots
+    reader = codecs.getreader("utf-8")
 
     timelineUrl = "https://mastodon.sdf.org/api/v1/timelines/public?limit=40&"
     data = []
     paginator = start
     for i in range(10):
         pagedUrl = timelineUrl if paginator is None else timelineUrl+"&since_id="+str(paginator)
-        newData = (json.load(urlopen(pagedUrl)))
+        newData = json.load(reader(urlopen(pagedUrl)))
         if(len(newData) == 0 ): break
         paginator = newData[len(newData)-1]["id"]
         data = data + newData
