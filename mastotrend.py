@@ -46,7 +46,8 @@ def getLotsOfToots(start):
     #Get a few pages of toots
     reader = codecs.getreader("utf-8")
 
-    timelineUrl = "https://mastodon.sdf.org/api/v1/timelines/public?limit=40&"
+    #timelineUrl = "https://mastodon.sdf.org/api/v1/timelines/public?limit=40"
+    timelineUrl = "https://mastodon.social/api/v1/timelines/public?limit=40"
     data = []
     paginator = start
     for i in range(10):
