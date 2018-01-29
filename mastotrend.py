@@ -94,7 +94,7 @@ def write_trending_json(sorted_probability_of_trending):
 mastoTrendHistory = loadTrendData()
 data = getLotsOfToots(mastoTrendHistory.lastTootSeen)
 
-(max_toot_id,big_list_of_words) = reduce((lambda x,y: (max(x[0],y[0]), x[1]+y[1])), map(lambda status: (int(status["id"]), html_to_string(status["content"])), data))
+(max_toot_id,big_list_of_words) = reduce((lambda x,y: (max(x[0],y[0]), x[1]+y[1])), map(lambda status: (int(status["id"]), html_to_string(status["content"])), data), (0, []))
 new_frequency_dist = nltk.probability.FreqDist(big_list_of_words)
 
 probability_of_trending = tendProbability(mastoTrendHistory.frequency_dist, mastoTrendHistory.totalTootsExamined, new_frequency_dist, len(data))
