@@ -77,7 +77,7 @@ def words(text):
     lemmatized = map(word_fix , tokenized)
     all_words = set(lemmatized) #the set prevents a single status from boosting a word multiple times.
     words_without_stopwords = filter(lambda w: len(w) > 4 and not w in set(stopwords.words('english')), all_words)
-    return list(words_without_stopwords)
+    return " ".join(list(words_without_stopwords))
 
 def html_to_string (html):
     return words(contractions.fix(BeautifulSoup(html, "html.parser").get_text()))
@@ -88,20 +88,25 @@ def write_trending_json(sorted_probability_of_trending):
         json.dump(list(map(lambda item: item[0], sorted_probability_of_trending)), json_file, ensure_ascii=False)
 
 mastoTrendHistory = loadTrendData()
-print (mastoTrendHistory.history)
+#print (mastoTrendHistory.history)
 data = getLotsOfToots(mastoTrendHistory.lastTootSeen)
 
-(max_toot_id,new_documents) = reduce((lambda x,y: (max(x[0],y[0]), x[1]+y[1])), map(lambda status: (int(status["id"]), html_to_string(status["content"])), data), (0, []))
+(max_toot_id,new_documents) = reduce((lambda x,y: (max(x[0],y[0]), x[1]+[y[1]])), map(lambda status: (int(status["id"]), html_to_string(status["content"])), data), (0, []))
 
-sklearn_tfidf = TfidfVectorizer(norm='l2',min_df=0, use_idf=True, smooth_idf=False, sublinear_tf=True)
+sklearn_tfidf = TfidfVectorizer(use_idf=True, sublinear_tf=True)
 
 if(len(mastoTrendHistory.history) <1 ):
     print("Empty History.  Making a fake one.")
     mastoTrendHistory.history = new_documents #Is it bad that we are double-counting the first pass?
 
 #fit_transform does a fit and a transform.  The fit part actually mutates the sklearn_tfidf.
-tfidf_corpus_matrix = sklearn_tfidf.fit_transform(mastoTrendHistory.history)
+print("Training with this many documents: "+str(len(mastoTrendHistory.history)))
+sklearn_tfidf.fit(mastoTrendHistory.history)
+
+print("Testing this many documents: "+str(len(new_documents)))
 tfidf_comparison_matrix = sklearn_tfidf.transform(new_documents)
+
+print("The first test document is "+new_documents[0])
 
 #print(new_documents)
 print(sklearn_tfidf.get_feature_names())
