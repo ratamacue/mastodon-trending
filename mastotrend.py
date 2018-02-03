@@ -3,7 +3,12 @@
 
 """Let's Mastodon"""
 
+#TODO:  Maybe use TF-IDF instead http://www.nltk.org/api/nltk.html#nltk.text.TextCollection
+# Example http://www.bogotobogo.com/python/NLTK/tf_idf_with_scikit-learn_NLTK.php
+# Understandable Example http://billchambers.me/tutorials/2014/12/21/tf-idf-explained-in-python.html
+
 import json
+import io
 import codecs
 import pickle
 import operator
@@ -17,6 +22,10 @@ import contractions
 from nltk.corpus import stopwords
 from functools import reduce
 import pprint
+from sklearn.feature_extraction.text import TfidfVectorizer
+import numpy #required by sklearn
+import scipy  #required by sklearn
+
 # pipreqs --force .
 # sudo python3 -m pip install -r requirements.txt
 nltk.download('wordnet')
@@ -24,8 +33,8 @@ nltk.download('stopwords')
 
 class MastoTrendData:
     lastTootSeen=None
-    totalTootsExamined = 0
-    frequency_dist = nltk.probability.FreqDist([])
+    history=[]
+
 
 def loadTrendData():
     try:
@@ -39,7 +48,6 @@ def saveTrendData(mastoTrendData):
     dataFile = open("mastotrend.dat","wb")
     pickle.dump(mastoTrendData, dataFile)
     dataFile.close()
-
 
 
 def getLotsOfToots(start):
@@ -74,41 +82,58 @@ def words(text):
 def html_to_string (html):
     return words(contractions.fix(BeautifulSoup(html, "html.parser").get_text()))
 
-def tendProbability(hisoric_frequency_dist, history_toot_count, new_frequency_dist, new_toot_count):
-    ret = {}
-    for word in new_frequency_dist:
-        try:
-            historic_average = hisoric_frequency_dist[word]/history_toot_count
-        except Exception:
-            historic_average=0
-        print("Historic word average "+word+" "+str(historic_average))
-        new_average = new_frequency_dist[word]/new_toot_count
-        ret[word] = new_average - historic_average
-    return ret
 
 def write_trending_json(sorted_probability_of_trending):
-    trending_json = json.dumps(list(map(lambda item: item[0], sorted_probability_of_trending)))
-    text_file = open("trending.json", "w")
-    text_file.write(trending_json)
-    text_file.close()
+    with io.open('trending.json', 'w', encoding='utf8') as json_file:
+        json.dump(list(map(lambda item: item[0], sorted_probability_of_trending)), json_file, ensure_ascii=False)
+    #trending_json = json.dumps(list(map(lambda item: item[0], sorted_probability_of_trending)), ensure_ascii=False).encode('utf8')
+    #text_file = open("trending.json", "w")
+    #text_file.write(trending_json)
+    #text_file.close()
 
 mastoTrendHistory = loadTrendData()
+print (mastoTrendHistory.history)
 data = getLotsOfToots(mastoTrendHistory.lastTootSeen)
 
-(max_toot_id,big_list_of_words) = reduce((lambda x,y: (max(x[0],y[0]), x[1]+y[1])), map(lambda status: (int(status["id"]), html_to_string(status["content"])), data), (0, []))
-new_frequency_dist = nltk.probability.FreqDist(big_list_of_words)
+#(max_toot_id,big_list_of_words) = reduce((lambda x,y: (max(x[0],y[0]), x[1]+y[1])), map(lambda status: (int(status["id"]), html_to_string(status["content"])), data))
+#new_frequency_dist = nltk.probability.FreqDist(big_list_of_words)
+(max_toot_id,new_documents) = reduce((lambda x,y: (max(x[0],y[0]), x[1]+y[1])), map(lambda status: (int(status["id"]), html_to_string(status["content"])), data), (0, []))
 
-probability_of_trending = tendProbability(mastoTrendHistory.frequency_dist, mastoTrendHistory.totalTootsExamined, new_frequency_dist, len(data))
+sklearn_tfidf = TfidfVectorizer(norm='l2',min_df=0, use_idf=True, smooth_idf=False, sublinear_tf=True)
 
-sorted_probability_of_trending = sorted(probability_of_trending.items(), reverse=True, key=operator.itemgetter(1))[:10]
+#https://stackoverflow.com/questions/46766662/python-compare-items-within-two-different-tfidf-matrices-of-different-dimension
+
+#print("New Documents: "+new_documents.join(,))
+
+if(len(mastoTrendHistory.history) <1 ):
+    print("Empty History.  Making a fake one.")
+    mastoTrendHistory.history = new_documents #Is it bad that we are double-counting the first pass?
+
+#fit_transform does a fit and a transform.  The fit part actually mutates the sklearn_tfidf.
+tfidf_corpus_matrix = sklearn_tfidf.fit_transform(mastoTrendHistory.history)
+tfidf_comparison_matrix = sklearn_tfidf.transform(new_documents)
+
+#print(new_documents)
+print(sklearn_tfidf.get_feature_names())
+#print(len(tfidf_comparison_matrix.toarray()))
+
+lists_of_lists = tfidf_comparison_matrix.toarray()
+frequency_list = [sum(x) for x in zip(*lists_of_lists)]
+print(frequency_list)
+words_list = sklearn_tfidf.get_feature_names()
+print(sklearn_tfidf.get_feature_names()[0]+ "=" +str(frequency_list[0] ))
+
+results = [(words_list[i], frequency_list[i]) for i in range(len(words_list))]
+
+sorted_results = sorted(results, key=lambda tup: tup[1], reverse=True)
+
 
 print("Last Toot: "+str(max_toot_id))
-pprint.pprint(sorted_probability_of_trending)
-write_trending_json(sorted_probability_of_trending)
+pprint.pprint(sorted_results[:10])
+write_trending_json(sorted_results[:10])
 
 
 #Save
-mastoTrendHistory.frequency_dist = mastoTrendHistory.frequency_dist + new_frequency_dist
-mastoTrendHistory.totalTootsExamined = mastoTrendHistory.totalTootsExamined + len(data)
+mastoTrendHistory.history = new_documents + mastoTrendHistory.history
 mastoTrendHistory.lastTootSeen = max_toot_id
 saveTrendData(mastoTrendHistory)
