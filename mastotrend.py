@@ -86,24 +86,14 @@ def html_to_string (html):
 def write_trending_json(sorted_probability_of_trending):
     with io.open('trending.json', 'w', encoding='utf8') as json_file:
         json.dump(list(map(lambda item: item[0], sorted_probability_of_trending)), json_file, ensure_ascii=False)
-    #trending_json = json.dumps(list(map(lambda item: item[0], sorted_probability_of_trending)), ensure_ascii=False).encode('utf8')
-    #text_file = open("trending.json", "w")
-    #text_file.write(trending_json)
-    #text_file.close()
 
 mastoTrendHistory = loadTrendData()
 print (mastoTrendHistory.history)
 data = getLotsOfToots(mastoTrendHistory.lastTootSeen)
 
-#(max_toot_id,big_list_of_words) = reduce((lambda x,y: (max(x[0],y[0]), x[1]+y[1])), map(lambda status: (int(status["id"]), html_to_string(status["content"])), data))
-#new_frequency_dist = nltk.probability.FreqDist(big_list_of_words)
 (max_toot_id,new_documents) = reduce((lambda x,y: (max(x[0],y[0]), x[1]+y[1])), map(lambda status: (int(status["id"]), html_to_string(status["content"])), data), (0, []))
 
 sklearn_tfidf = TfidfVectorizer(norm='l2',min_df=0, use_idf=True, smooth_idf=False, sublinear_tf=True)
-
-#https://stackoverflow.com/questions/46766662/python-compare-items-within-two-different-tfidf-matrices-of-different-dimension
-
-#print("New Documents: "+new_documents.join(,))
 
 if(len(mastoTrendHistory.history) <1 ):
     print("Empty History.  Making a fake one.")
@@ -119,9 +109,9 @@ print(sklearn_tfidf.get_feature_names())
 
 lists_of_lists = tfidf_comparison_matrix.toarray()
 frequency_list = [sum(x) for x in zip(*lists_of_lists)]
-print(frequency_list)
+#print(frequency_list)
 words_list = sklearn_tfidf.get_feature_names()
-print(sklearn_tfidf.get_feature_names()[0]+ "=" +str(frequency_list[0] ))
+#print(sklearn_tfidf.get_feature_names()[0]+ "=" +str(frequency_list[0] ))
 
 results = [(words_list[i], frequency_list[i]) for i in range(len(words_list))]
 
