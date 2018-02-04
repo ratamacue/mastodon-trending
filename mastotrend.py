@@ -58,7 +58,7 @@ def getLotsOfToots(start):
     timelineUrl = "https://mastodon.social/api/v1/timelines/public?limit=40"
     data = []
     paginator = start
-    for i in range(10):
+    for i in range(100):
         pagedUrl = timelineUrl if paginator is None else timelineUrl+"&since_id="+str(paginator)
         newData = json.load(reader(urlopen(pagedUrl)))
         if(len(newData) == 0 ): break
@@ -104,9 +104,8 @@ print("Training with this many documents: "+str(len(mastoTrendHistory.history)))
 sklearn_tfidf.fit(mastoTrendHistory.history)
 
 print("Testing this many documents: "+str(len(new_documents)))
-tfidf_comparison_matrix = sklearn_tfidf.transform(new_documents)
-
-print("The first test document is "+new_documents[0])
+new_documents_as_one_document = [reduce(lambda x,y: x+y, new_documents)]
+tfidf_comparison_matrix = sklearn_tfidf.transform(new_documents_as_one_document)
 
 #print(new_documents)
 print(sklearn_tfidf.get_feature_names())
