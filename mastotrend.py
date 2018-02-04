@@ -92,19 +92,19 @@ mastoTrendHistory = loadTrendData()
 data = getLotsOfToots(mastoTrendHistory.lastTootSeen)
 
 (max_toot_id,new_documents) = reduce((lambda x,y: (max(x[0],y[0]), x[1]+[y[1]])), map(lambda status: (int(status["id"]), html_to_string(status["content"])), data), (0, []))
+new_documents_as_one_document = [reduce(lambda x,y: x+y, new_documents)]
 
 sklearn_tfidf = TfidfVectorizer(use_idf=True, sublinear_tf=True)
 
 if(len(mastoTrendHistory.history) <1 ):
     print("Empty History.  Making a fake one.")
-    mastoTrendHistory.history = new_documents #Is it bad that we are double-counting the first pass?
+    mastoTrendHistory.history = new_documents_as_one_document #Is it bad that we are double-counting the first pass?
 
 #fit_transform does a fit and a transform.  The fit part actually mutates the sklearn_tfidf.
 print("Training with this many documents: "+str(len(mastoTrendHistory.history)))
 sklearn_tfidf.fit(mastoTrendHistory.history)
 
-print("Testing this many documents: "+str(len(new_documents)))
-new_documents_as_one_document = [reduce(lambda x,y: x+y, new_documents)]
+print("Testing this many toots as one document: "+str(len(new_documents)))
 tfidf_comparison_matrix = sklearn_tfidf.transform(new_documents_as_one_document)
 
 #print(new_documents)
@@ -128,6 +128,6 @@ write_trending_json(sorted_results[:10])
 
 
 #Save
-mastoTrendHistory.history = new_documents + mastoTrendHistory.history
+mastoTrendHistory.history = new_documents_as_one_document + mastoTrendHistory.history
 mastoTrendHistory.lastTootSeen = max_toot_id
 saveTrendData(mastoTrendHistory)
