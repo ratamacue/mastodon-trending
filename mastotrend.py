@@ -97,7 +97,8 @@ data = getLotsOfToots(mastoTrendHistory.lastTootSeen)
 new_documents_as_one_document = [reduce(lambda x,y: x+y, new_documents)]
 
 #sklearn_tfidf = TfidfVectorizer(use_idf=True, sublinear_tf=True)
-sklearn_tfidf = TfidfVectorizer(analyzer='word', ngram_range=(1,3), stop_words = 'english')
+#max_df (Ignore terms that show up in x% or more of documents)
+sklearn_tfidf = TfidfVectorizer(analyzer='word', ngram_range=(1,3), max_df=0.25)
 
 if(len(mastoTrendHistory.history) <1 ):
     print("Empty History.  Making a fake one.")
@@ -110,9 +111,7 @@ sklearn_tfidf.fit(mastoTrendHistory.history)
 print("Testing this many toots as one document: "+str(len(new_documents)))
 tfidf_comparison_matrix = sklearn_tfidf.transform(new_documents_as_one_document)
 
-#print(new_documents)
-print(sklearn_tfidf.get_feature_names())
-#print(len(tfidf_comparison_matrix.toarray()))
+#print(sklearn_tfidf.get_feature_names())
 
 lists_of_lists = tfidf_comparison_matrix.toarray()
 frequency_list = [sum(x) for x in zip(*lists_of_lists)]
