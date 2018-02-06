@@ -7,6 +7,8 @@
 # Example http://www.bogotobogo.com/python/NLTK/tf_idf_with_scikit-learn_NLTK.php
 # Understandable Example http://billchambers.me/tutorials/2014/12/21/tf-idf-explained-in-python.html
 
+# tune the algo http://www.markhneedham.com/blog/2015/02/15/pythonscikit-learn-calculating-tfidf-on-how-i-met-your-mother-transcripts/
+
 import json
 import io
 import codecs
@@ -54,8 +56,8 @@ def getLotsOfToots(start):
     #Get a few pages of toots
     reader = codecs.getreader("utf-8")
 
-    #timelineUrl = "https://mastodon.sdf.org/api/v1/timelines/public?limit=40"
-    timelineUrl = "https://mastodon.social/api/v1/timelines/public?limit=40"
+    timelineUrl = "https://mastodon.sdf.org/api/v1/timelines/public?limit=40"
+    #timelineUrl = "https://mastodon.social/api/v1/timelines/public?limit=40"
     data = []
     paginator = start
     for i in range(100):
@@ -80,7 +82,7 @@ def words(text):
     return " ".join(list(words_without_stopwords))
 
 def html_to_string (html):
-    return words(contractions.fix(BeautifulSoup(html, "html.parser").get_text()))
+    return contractions.fix(BeautifulSoup(html, "html.parser").get_text())
 
 
 def write_trending_json(sorted_probability_of_trending):
@@ -94,7 +96,8 @@ data = getLotsOfToots(mastoTrendHistory.lastTootSeen)
 (max_toot_id,new_documents) = reduce((lambda x,y: (max(x[0],y[0]), x[1]+[y[1]])), map(lambda status: (int(status["id"]), html_to_string(status["content"])), data), (0, []))
 new_documents_as_one_document = [reduce(lambda x,y: x+y, new_documents)]
 
-sklearn_tfidf = TfidfVectorizer(use_idf=True, sublinear_tf=True)
+#sklearn_tfidf = TfidfVectorizer(use_idf=True, sublinear_tf=True)
+sklearn_tfidf = TfidfVectorizer(analyzer='word', ngram_range=(1,3), stop_words = 'english')
 
 if(len(mastoTrendHistory.history) <1 ):
     print("Empty History.  Making a fake one.")
