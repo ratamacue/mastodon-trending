@@ -98,7 +98,7 @@ new_documents_as_one_document = [reduce(lambda x,y: x+y, new_documents)]
 
 #sklearn_tfidf = TfidfVectorizer(use_idf=True, sublinear_tf=True)
 #max_df (Ignore terms that show up in x% or more of documents)
-sklearn_tfidf = TfidfVectorizer(analyzer='word', ngram_range=(1,3), max_df=0.25)
+sklearn_tfidf = TfidfVectorizer(analyzer='word', max_df=0.25)
 
 if(len(mastoTrendHistory.history) <1 ):
     print("Empty History.  Making a fake one.")
