@@ -69,19 +69,6 @@ def getLotsOfToots(start):
         print("data size: "+str(len(data)))
     return data
 
-def words(text):
-    def word_fix(word):
-        word = word.lower()
-        word = lemmatizer.lemmatize(word)
-        return word
-
-    lemmatizer = WordNetLemmatizer()
-    tokenized = TweetTokenizer(preserve_case=False).tokenize(text)
-    lemmatized = map(word_fix , tokenized)
-    all_words = set(lemmatized) #the set prevents a single status from boosting a word multiple times.
-    words_without_stopwords = filter(lambda w: len(w) > 4 and not w in set(stopwords.words('english')), all_words)
-    return " ".join(list(words_without_stopwords))
-
 def html_to_string (html):
     return contractions.fix(BeautifulSoup(html, "html.parser").get_text())
 
@@ -95,22 +82,23 @@ mastoTrendHistory = loadTrendData()
 data = getLotsOfToots(mastoTrendHistory.lastTootSeen)
 
 (max_toot_id,new_documents) = reduce((lambda x,y: (max(x[0],y[0]), x[1]+[y[1]])), map(lambda status: (int(status["id"]), html_to_string(status["content"])), data), (0, []))
-new_documents_as_one_document = [reduce(lambda x,y: x+y, new_documents)]
 
-#sklearn_tfidf = TfidfVectorizer(use_idf=True, sublinear_tf=True)
-#max_df (Ignore terms that show up in x% or more of documents)
-sklearn_tfidf = TfidfVectorizer(analyzer='word', max_df=0.25)
+#max_df = Ignore terms that show up in more than x% of documents
+#min_df = Ignore terms that show up in < 100 documents
+sklearn_tfidf = TfidfVectorizer(analyzer='word', max_df=0.80, min_df=100, stop_words='english')
 
-if(len(mastoTrendHistory.history) <1 ):
+#Maybe add this https://medium.com/mlreview/topic-modeling-with-scikit-learn-e80d33668730
+
+if(len(mastoTrendHistory.history) < 4 ): # 4 because max_df = 0.25
     print("Empty History.  Making a fake one.")
-    mastoTrendHistory.history = new_documents_as_one_document #Is it bad that we are double-counting the first pass?
+    mastoTrendHistory.history.extend(new_documents) #Is it bad that we are multi-counting the first pass?
 
 #fit_transform does a fit and a transform.  The fit part actually mutates the sklearn_tfidf.
 print("Training with this many documents: "+str(len(mastoTrendHistory.history)))
 sklearn_tfidf.fit(mastoTrendHistory.history)
 
-print("Testing this many toots as one document: "+str(len(new_documents)))
-tfidf_comparison_matrix = sklearn_tfidf.transform(new_documents_as_one_document)
+print("Testing this many toots: "+str(len(new_documents)))
+tfidf_comparison_matrix = sklearn_tfidf.transform(new_documents)
 
 #print(sklearn_tfidf.get_feature_names())
 
@@ -131,6 +119,6 @@ write_trending_json(sorted_results[:10])
 
 
 #Save
-mastoTrendHistory.history = new_documents_as_one_document + mastoTrendHistory.history
+mastoTrendHistory.history = new_documents + mastoTrendHistory.history
 mastoTrendHistory.lastTootSeen = max_toot_id
 saveTrendData(mastoTrendHistory)
