@@ -60,12 +60,13 @@ def getLotsOfToots(start):
     #timelineUrl = "https://mastodon.social/api/v1/timelines/public?limit=40"
     data = []
     paginator = start
-    for i in range(100):
+    for i in range(1000):
         pagedUrl = timelineUrl if paginator is None else timelineUrl+"&since_id="+str(paginator)
         newData = json.load(reader(urlopen(pagedUrl)))
         if(len(newData) == 0 ): break
         paginator = newData[len(newData)-1]["id"]
         data = data + newData
+        print("data size: "+str(len(data)))
     return data
 
 def words(text):
@@ -75,7 +76,7 @@ def words(text):
         return word
 
     lemmatizer = WordNetLemmatizer()
-    tokenized = TweetTokenizer().tokenize(text)
+    tokenized = TweetTokenizer(preserve_case=False).tokenize(text)
     lemmatized = map(word_fix , tokenized)
     all_words = set(lemmatized) #the set prevents a single status from boosting a word multiple times.
     words_without_stopwords = filter(lambda w: len(w) > 4 and not w in set(stopwords.words('english')), all_words)
